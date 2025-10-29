@@ -1,5 +1,6 @@
 ### Noise is an efficient learner for zero-shot vision-language models (TNT) (ICCVxCLVL 2025)
 [Raza Imam](https://razaimam45.github.io/), Asif Hanif, Jian Zhang, Khaled Waleed Dawoud, Yova Kementchedjhieva, Mohammad Yaqub
+
 Mohamed Bin Zayed University of Artificial Intelligence
 
 [![paper](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/abs/2502.06019)
@@ -9,11 +10,14 @@ This repository provides the official PyTorch implementation of our TNT paper:
 > Noise is an efficient learner for zero-shot vision-language models      
 > Authors: *Raza Imam, Asif Hanif, Jian Zhang, Khaled Waleed Dawoud, Yova Kementchedjhieva, Mohammad Yaqub*  
 
-<p align = "center">
+<p align = "justified">
 <img src = "utils/Method.png">
 </p>
-<p align = "center">
-Working of our Noise Adaptation Method: TNT.
+<p align = "justified">
+Test-Time Noise Tuning (TNT) (1) generates augmented views of a test image, (2) applies adaptive learnable noise, and (3)
+computes logits and feature vectors for each view. (4) Top-K views are selected by confidence, with (5) entropy loss [Eq. 3] enforcing
+confident predictions and (6) inter-view consistency loss aligning feature representations. (7) The combined loss is backpropagated
+to iteratively refine the noise, enabling adaptive test-time noise tuning.
 </p>
 
 For more details, please check out our [<ins>**paper**</ins>](https://arxiv.org/abs/2502.06019). 
@@ -98,7 +102,7 @@ python tnt.py \
 
 ### Main results (ViT-B/16)
 #### Quantitative Results
-<div align="center">
+<div align="justified">
 
 | Setting | CLIP | TNT* | TNT |
 |---|---|---|---|
@@ -112,18 +116,29 @@ python tnt.py \
 
 #### Qualitative Results
 
-<p align = "center">
+<p align = "justified">
 <img src = "utils/TSNE.png">
 </p>
-<p align = "center">
+<p align = "justified">
+t-SNE visualizations of the final class embedding from
+the test sets of ImageNet-A dataset, following Table 1. TNT could
+produce more clustered and separable features than other zeroshot generalization baselines.
 </p>
 
 #### Computation Results
 
-<p align = "center">
+<p align = "justified">
 <img src = "utils/Compute.png">
 </p>
-<p align = "center">
+<p align = "justified">
+Analysis of Trainable Parameters (TP) for TNT, textual tuning, and encoder tuning. Circle size indicates the #TP. Textual Tuning methods use the same TP count of 2K to optimize
+prompts. RLCF*
+refers to RLCF with all visual encoder parameters trainable, Layer Norm limits trainable parameters of visual
+encoder to only Layer Norms, and Visual Prompt applies learnable
+prompts to the visual encoder across 12 layers of the ViT encoder.
+TNT‡ indicates TNT with only 224×9 trainable noise parameters,
+compared to standard TNT with 224 × 224 × 3 TP. Noise denotes
+optimization with 224 × 9 TP in noise and with only L_entropy loss.
 </p>
 
 
