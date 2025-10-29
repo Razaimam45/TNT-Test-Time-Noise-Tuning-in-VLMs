@@ -1,10 +1,10 @@
-### Noise is an efficient learner for zero-shot vision-language models (ICCVxCLVL 2025)
+### Noise is an efficient learner for zero-shot vision-language models (TNT) (ICCVxCLVL 2025)
 [Raza Imam](https://razaimam45.github.io/), Asif Hanif, Jian Zhang, Khaled Waleed Dawoud, Yova Kementchedjhieva, Mohammad Yaqub
 Mohamed Bin Zayed University of Artificial Intelligence
 
 [![paper](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/abs/2502.06019)
 
-This repository provides the official PyTorch implementation of our TTL paper:    
+This repository provides the official PyTorch implementation of our TNT paper:    
 
 > Noise is an efficient learner for zero-shot vision-language models      
 > Authors: *Raza Imam, Asif Hanif, Jian Zhang, Khaled Waleed Dawoud, Yova Kementchedjhieva, Mohammad Yaqub*  
