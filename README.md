@@ -1,269 +1,146 @@
-# Reinforcement Learning with CLIP Feedback :sparkles:
-<!-- :sparkles: -->
+### Noise is an efficient learner for zero-shot vision-language models (ICCVxCLVL 2025)
+[Raza Imam](https://razaimam45.github.io/), Asif Hanif, Jian Zhang, Khaled Waleed Dawoud, Yova Kementchedjhieva, Mohammad Yaqub
+Mohamed Bin Zayed University of Artificial Intelligence
 
-The official implementation of [Test-Time Adaptation with CLIP Reward for Zero-Shot Generalization in Vision-Language Models](https://openreview.net/forum?id=kIP0duasBb).
+[![paper](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/abs/2502.06019)
+
+This repository provides the official PyTorch implementation of our TTL paper:    
+
+> Noise is an efficient learner for zero-shot vision-language models      
+> Authors: *Raza Imam, Asif Hanif, Jian Zhang, Khaled Waleed Dawoud, Yova Kementchedjhieva, Mohammad Yaqub*  
+
+<p align = "center">
+<img src = "utils/Method.png">
+</p>
+<p align = "center">
+Working of our Noise Adaptation Method: TNT.
+</p>
+
+For more details, please check out our [<ins>**paper**</ins>](https://arxiv.org/abs/2502.06019). 
+
+## Overview
+TNT is a test-time adaptation method for zero-shot vision–language models that learns input-space noise per sample, aligns multi-view embeddings, and uses temperature-scaled voting over confident views to improve generalization and calibration without updating model weights.
+Across ImageNet distribution shifts, TNT improves OOD top-1 accuracy by +7.38 points over zero-shot CLIP, and yields +0.80 points on cross-dataset benchmarks, with experiments primarily on CLIP ViT-B/16.
+
+### Key ideas
+- Learn a bounded image-space noise map ξ and update it at test time using entropy minimization on top-K confident augmentations to reduce uncertainty for the current sample.
+- Enforce inter-view consistency by minimizing pairwise distances between embeddings of the selected confident views to stabilize features across augmentations.
+- At inference, average temperature-scaled logits over the top-K views with the learned noise to form the final prediction, improving accuracy and calibration without modifying VLM weights.
+
+### What’s new
+- First noise-adaptation strategy for test-time tuning of VLMs that operates directly in the visual input space under a black-box vision encoder assumption.
+- Synergizes with CoOp-initialized prompts while keeping the visual encoder frozen, outperforming strong TTA baselines like TPT, C-TPT, SaLS, and RLCF on natural and cross-dataset shifts.
+- Uses a simple, efficient setup (single-step optimization by default) and reports runs on a single NVIDIA A6000 48GB GPU for all experiments.
 
 
-##  Table of Contents
+### Repository structure
+```
+- clip/
+- data/
+- scripts/
+- utils/: shared utilities
+- tnt.py: main entrypoint (CLI) to run TNT inference and test-time optimization
+- params.py: default hyperparameters and configuration used in experiments
+```
 
-<!--ts-->
-* [Introduction](#Introduction)
-* [Features](#Features)
-* [Installation](#Installation)
-* [Classification](#Classification)
-* [Retrieval](#Retrieval)
-* [Captioning](#Captioning)
-* [Citations](#Citations)
-* [Acknowledgements](#Acknowledgements)
-<!--te-->
+### Installation
+- The paper evaluates TNT on CLIP backbones (e.g., ViT-B/16) and does not require training the encoder; use any standard PyTorch CLIP implementation and ensure access to GPU for augmentation-heavy test-time optimization as reported in the paper.
+- The code repository is linked from the arXiv page; install the repo and its dependencies as indicated there to match the reported environment.
 
-## News
+### Datasets 
 
-- [17/01/2024] repo online.
+We suggest downloading all datasets to a root directory (`${DATA_ROOT}`), and renaming the directory of each dataset as suggested in `${ID_to_DIRNAME}` in `./data/datautils.py`. This would allow you to evaluate multiple datasets within the same run.     
+If this is not feasible, you could evaluate different datasets separately, and change the `${DATA_ROOT}` accordingly in the bash script.
 
+For out-of-distribution generalization, we consider 5 datasets:
 
-## Introduction
+* [ImageNet](https://image-net.org/index.php) 
+* [ImageNet-A](https://github.com/hendrycks/natural-adv-examples)
+* [ImageNet-R](https://github.com/hendrycks/imagenet-r)
+* [ImageNet-V2](https://s3-us-west-2.amazonaws.com/imagenetv2public/imagenetv2-matched-frequency.tar.gz)
+* [ImageNet-Sketch](https://github.com/HaohanWang/ImageNet-Sketch)
 
-<div align="justify">
-One fascinating aspect of pre-trained vision-language models~(VLMs) learning under language supervision is their impressive zero-shot generalization capability.
-However, this ability is hindered by distribution shifts between the training and testing data.
-Previous test time adaptation~(TTA) methods for VLMs in zero-shot classification rely on minimizing the entropy of model outputs, tending to be stuck in incorrect model predictions.
-In this work, we propose TTA with feedback to rectify the model output and prevent the model from becoming blindly confident.
-Specifically, a CLIP model is adopted as the reward model during TTA and provides feedback for the VLM.
-Given a single test sample,
-the VLM is forced to maximize the CLIP reward between the input and sampled results from the VLM output distribution.
-The proposed <strong>reinforcement learning with CLIP feedback~(RLCF)</strong> framework is highly flexible and universal.
-Beyond the classification task, with task-specific sampling strategies and a proper reward baseline choice, RLCF can be easily extended to not only discrimination tasks like retrieval but also generalization tasks like image captioning,
-improving the zero-shot generalization capacity of VLMs.
-According to the characteristics of these VL tasks, we build different fully TTA pipelines with RLCF to improve the zero-shot generalization ability of various VLMs.
-Extensive experiments along with promising
-empirical results demonstrate the effectiveness of RLCF.
+For cross-datasets generalization, we consider 10 datasets:
+* [Flower102](https://www.robots.ox.ac.uk/~vgg/data/flowers/102/102flowers.tgz)
+* [DTD](https://www.robots.ox.ac.uk/~vgg/data/dtd/download/dtd-r1.0.1.tar.gz)
+* [OxfordPets](https://www.robots.ox.ac.uk/~vgg/data/pets/data/images.tar.gz)
+* [StanfordCars](https://ai.stanford.edu/~jkrause/cars/car_dataset.html)
+* [UCF101](https://drive.google.com/file/d/10Jqome3vtUA2keJkNanAiFpgbyC9Hc2O/view?usp=sharing)
+* [Caltech101](http://www.vision.caltech.edu/Image_Datasets/Caltech101/101_ObjectCategories.tar.gz)
+* [Food101](http://data.vision.ee.ethz.ch/cvl/food-101.tar.gz)
+* [SUN397](http://vision.princeton.edu/projects/2010/SUN/SUN397.tar.gz)
+* [Aircraft](https://www.robots.ox.ac.uk/~vgg/data/fgvc-aircraft/archives/fgvc-aircraft-2013b.tar.gz)
+* [EuroSAT](http://madm.dfki.de/files/sentinel/EuroSAT.zip)
 
-<div align=center>
-  <img src="assets/clip-reward.png" style="zoom:100%"/></pr>
+For cross-dataset generalization, we adopt the same train/val/test splits as CoOp. Please refer to [this page](https://github.com/KaiyangZhou/CoOp/blob/main/DATASETS.md#how-to-install-datasets), and look for download links of `split_zhou_${dataset_name}.json`, and put the json files under `./data/data_splits/`.
+
+### Pretrained models and prompts
+- Zero-shot CLIP ViT-B/16 is the primary backbone, evaluated alone and with CoOp-initialized 4-shot prompts used only for initialization in the stronger TNT variant.
+- TNT preserves the encoder weights; TNT* uses a hand-crafted “a photo of a {CLASS}” prompt, while TNT uses CoOp-initialized prompts for additional gains.
+
+### Quick start
+Run TNT on an OOD split (illustrative CLI mirroring paper defaults and the provided entrypoint):[4]
+```
+python tnt.py \
+  --dataset imagenet_a \
+  --backbone vit_b16 \
+  --num_views 64 \
+  --topk 6 \
+  --epsilon 0.0039 \
+  --lr 1e-3 \
+  --tau 7e-3 \
+  --steps 1 \
+  --prompt coop_4shot \
+  --save_dir runs/tnt_imagenet_a
+```
+- Paper defaults: N=64 augmentations per image, ε=1/255 for noise bounds, learning rate 1e−3, temperature τ=7e−3, and single-step optimization unless otherwise noted.
+- TNT* uses the hand-crafted prompt; TNT uses CoOp-initialized weights, with both variants keeping the visual encoder frozen during test-time tuning.
+
+### Main results (ViT-B/16)
+#### Quantitative Results
+<div align="center">
+
+| Setting | CLIP | TNT* | TNT |
+|---|---|---|---|
+| ImageNet (in-domain) | 67.41  | 70.27  | 72.06  |
+| ImageNet-A (OOD) | 47.85  | 61.87  | 63.93  |
+| OOD average (IN-A/V2/R/K) | 57.21  | 62.63  | 64.59 (+7.38)  |
+| Cross-dataset average (10 sets) | 63.68  | 64.07  | 64.48 (+0.80)  |
+
 </div>
+<br />
 
-</div>
+#### Qualitative Results
 
+<p align = "center">
+<img src = "utils/TSNE.png">
+</p>
+<p align = "center">
+</p>
 
-## Features
+#### Computation Results
 
-- [x] TTA for CLIP OOD classification with RLCF. Prompt tuning + backbone tuning.
-- [x] TTA for CLIP retrieval with RLCF.
-- [x] Training and TTA for ClipCap and CapDec.
-
-
-## Installation
-
-The code in this repo about the three tasks are independent. You can step up them task by task.
-
-### Prepare data
-
-First of all, you need to download the dataset and pre-trained models.
-
-- OOD image classification dataset
-  * [ImageNet](https://image-net.org/index.php)
-  * [ImageNet-on-huggingface](https://huggingface.co/datasets/imagenet-1k) 
-  * [ImageNet-A](https://github.com/hendrycks/natural-adv-examples)
-  * [ImageNet-R](https://github.com/hendrycks/imagenet-r)
-  * [ImageNet-V2](https://huggingface.co/datasets/vaishaal/ImageNetV2/tree/main)
-  * [ImageNet-Sketch](https://github.com/HaohanWang/ImageNet-Sketch)
-  * The code also supports fine-grained datasets used in TPT and ImageNet-C.
-
-- Retrieval dataset (credit on [salesforce/LAVIS](https://github.com/salesforce/LAVIS/blob/main/dataset_card/coco_retrieval.md))
-  * [coco2014](https://github.com/salesforce/LAVIS/blob/main/dataset_card/coco_retrieval.md)
-  * [flickr30k](https://github.com/salesforce/LAVIS/blob/main/dataset_card/flickr_retrieval.md)
-  * [annotations-files](https://github.com/mzhaoshuai/RLCF/releases/download/0.0.1/annotations.zip)
-
-- Captioning dataset
-  * [coco2014](https://github.com/salesforce/LAVIS/blob/main/dataset_card/coco_caption.md)
-  * [nocaps](https://nocaps.org/download)
-  * [annotations-files](https://github.com/mzhaoshuai/RLCF/releases/download/0.0.1/annotations.zip)
-
-- weights of pre-trained models:
-    - [CLIP-ViT-B/32](https://openaipublic.azureedge.net/clip/models/40d365715913c9da98579312b702a82c18be219cc2a73407c4526f58eba950af/ViT-B-32.pt)
-    - [CLIP-ViT-B/16](https://openaipublic.azureedge.net/clip/models/5806e77cd80f8b59890b7e101eabd078d9fb84e6937f9e85e4ecb61988df416f/ViT-B-16.pt)
-    - [CLIP-ViT-L/14](https://openaipublic.azureedge.net/clip/models/b8cca3fd41ae0c99ba7e8951adf17d267cdb84cd88be6f7c2e0eca1737a03836/ViT-L-14.pt)
-    - [RN50x64](https://openaipublic.azureedge.net/clip/models/be1cfb55d75a9666199fb2206c106743da0f6468c9d327f3e0d0a543a9919d9c/RN50x64.pt)
-    - [facebook/opt-125m](https://huggingface.co/facebook/opt-125m)
-    - [CoOp Weights](https://drive.google.com/file/d/18ypxfd82RR0pizc5MM1ZWDYDk4j0BtPF/view)
-    - [weights-of-ClipCap](https://github.com/mzhaoshuai/RLCF/releases/download/0.0.1/capdec_opt125m_transformer_coco_01.zip) Put them at the `${ROOT}/output`.
-    - [weights-of-CapDec](https://github.com/mzhaoshuai/RLCF/releases/download/0.0.1/clipcap_opt125m_transformer_coco_01.zip) Put them at the `${ROOT}/output`.
-
-- For convenient, you can also download all the datasets at BaiduYunPan. Please only use for research or education purposes.
-  * [BaiduYunPan RLCF](https://pan.baidu.com/s/1HStpgyMFLYUjgJLh6ZI14w?pwd=d653), code is `d653`.
+<p align = "center">
+<img src = "utils/Compute.png">
+</p>
+<p align = "center">
+</p>
 
 
-Generally, directories are organized as follows:
+### Reproducibility notes
+- All reported ablations and efficiency numbers use the same backbone across methods, one optimization step by default, and a single A6000 48GB GPU; TNT attains strong accuracy–time–memory trade-offs versus prior TTA baselines under these settings.
+- Increasing steps and augmentations typically improves both accuracy and Expected Calibration Error, with diminishing returns past N≈64 and modest extra memory/time costs as analyzed in the paper.
+
+### Citation
+If you find this work useful, please cite the arXiv version below (ICCVxCLVL 2025 listing appears on the author’s page):[2][1]
 ```
-${ROOT}
-├── dataset
-│   │
-│   ├──tta_data
-│   │   ├──ImageNet
-│   │   ├──imagenet-a
-│   │   ├──imagenet-r
-│   │   ├──ImageNet-Sketch
-│   │   └──imagenetv2-matched-frequency-format-val
-│   │       
-│   ├──coco2014
-│   ├──nocaps
-│   └──flickr30k
-│
-├── code
-│   └── RLCF
-│       ├──caption
-│       ├──clipscore
-│       ├──retrieval
-│       └──TPT  
-│ 
-├── output (save the output of the program)
-│
-│
-├── pretrained
-│       ├──opt-125m
-│       ├──coop
-│       │    └──coop_16shots_nctx4_cscFalse_ctpend_vitb16_seed1
-│       │
-│       └── clip (download the CLIP pre-trained weights and put them here)
-│            └── ViT-B-16.pt
-│
-...
-```
-
-### Dependency
-
-Requires `Python >= 3.8` and `PyTorch >= 1.12`.
-The following commands are tested on a Linux machine with CUDA Driver Version `525.105.17` and CUDA Version `11.7`.
-```
-conda create --name rlcf python=3.8.5
-pip install -r requirements.txt 
-```
-I use
-```
-torch==1.13.1+cu117
-torchvision==0.14.1+cu117
---extra-index-url https://download.pytorch.org/whl/cu117
-```
-in the requirements file.
-
-If you use other versions of cuda, simply remove them (the last 3 lines in the txt file) in `requirements.txt` then do
-```
-conda create --name rlcf python=3.8.5
-conda install pytorch==1.13.1 torchvision==0.14.1 -c pytorch
-pip install -r requirements.txt 
-```
-
-
-## Classification
-<div align=center>
-  <img src="assets/cls.png" style="zoom:100%"/></pr>
-</div>
-
-- Before training, you should set the path properly. **Change all `root` variables in `TPT/scripts/*.sh` to you path.**
-- Set up the directory of CLIP in the python files properly. Variables `DOWNLOAD_ROOT_v2` in `TPT/clip_reward.py` and `TPT/clip/custom_clip.py`.
-
-Then you can `cd TPT/scripts`,
-- For test-time prompt tuning with CLIP reward, refer to
-```
-bash rlcf-prompt.sh 0
-```
-To evaluate on ImageNet, ImageNet-V2, and ImageNet-Sketch (which has 1000 classes), you will need a GPU with more than (not including) 16GB memory. 
-
-
-- For test-time CLIP image encoder tuning with CLIP reward, refer to
-```
-bash rlcf-tune.sh 0
-```
-A 16GB GPU card should be enough.
-
-
-## Retrieval
-<div align=center>
-  <img src="assets/ret.png" style="zoom:100%"/></pr>
-</div>
-
-- Before training, you should set the path properly. **Change all `root` variables in `retrieval/scripts/*.sh` to you path.**
-- Set up the directory of CLIP in the config and python files properly.
-  * global search `/YOUR/PATH` in the `retrieval` directory, and change `/YOUR/PATH` to your path.
-  * To name a few, `retrieval/lavis/models/clip_models/pretrained.py`, `retrieval/lavis/configs/datasets/coco` and `flickr30k`, `retrieval/clip_rewards.py`, `retrieval/custom_models.py`, ... 
-
-Then you can `cd retrieval/scripts`,
-- For test-time CLIP image encoder tuning with CLIP reward on COCO2014, refer to
-```
-bash tta_coco_ret.sh 0
-```
-
-- For test-time CLIP image encoder tuning with CLIP reward on flickr30k, refer to
-```
-bash tta_flickr_ret.sh 0
-```
-
-## Captioning
-<div align=center>
-  <img src="assets/cap.png" style="zoom:100%"/></pr>
-</div>
-
-- Before training, you should set the path properly. **Change all `root` variables in `caption/scripts/*.sh` to you path.**
-- Set up the directory of CLIP in the python files properly.
-  * global search `/YOUR/PATH` in the `caption` directory, and change `/YOUR/PATH` to your path.
-  * To name a few, `caption/clip_rewards.py`...
- 
-Then you can `cd caption/scripts`,
-- For TTA with CapDec, COCO --> flickr30k or COCO --> Nocaps,  refer to
-```
-bash tta_capdec_c2f.sh 0
-bash tta_capdec_c2n.sh 0
-```
-
-- For TTA with ClipCap, COCO --> flickr30k or COCO --> Nocaps, refer to
-```
-bash tta_clipcap_c2f.sh 0
-bash tta_clipcap_c2n.sh 0
-```
-
-- For training with ClipCap or CapDec on COCO, refer to
-```
-bash train_capdec_coco.sh 0
-bash train_clipcap_coco.sh 0
-```
-You need to download the [CLIP-features-for-coco](https://github.com/mzhaoshuai/RLCF/releases/download/0.0.1/COCO_train_set_image_text_vitb16_v2.zip) or [CLIP-features-for-flikcr](https://github.com/mzhaoshuai/RLCF/releases/download/0.0.1/flickr_train_set_image_text_vitb16_v2.zip) before training.
-
-
-- For the evaluation of captioning results, we adopt the scripts from `clipscore`. It includes `Bleu`, `Meteor`, `Rouge`, `Cider`, `CLIPScore`. If you want to get `Spice`, try to uncomment line25 in `clipscore/generation_eval_utils.py`.
-
-
-## Citations
-```
-@inproceedings{
-zhao2024testtime,
-title={Test-Time Adaptation with {CLIP} Reward for Zero-Shot Generalization in Vision-Language Models},
-author={Shuai Zhao and Xiaohan Wang and Linchao Zhu and Yi Yang},
-booktitle={The Twelfth International Conference on Learning Representations},
-year={2024},
-url={https://openreview.net/forum?id=kIP0duasBb}
+@article{imam2025tnt,
+  title   = {Noise is an Efficient Learner for Zero-Shot Vision-Language Models},
+  author  = {Imam, Raza and Hanif, Asif and Zhang, Jian and Dawoud, Khaled Waleed and Kementchedjhieva, Yova and Yaqub, Mohammad},
+  journal = {arXiv:2502.06019},
+  year    = {2025}
 }
 ```
 
-
-## Acknowledgements
-
-This repo is built upon these previous works.
-
-<!--ts-->
-* [azshue/TPT](https://github.com/azshue/TPT)
-* [openai/CLIP](https://github.com/openai/CLIP)
-* [mlfoundations/open_clip](https://github.com/mlfoundations/open_clip)
-* [huggingface/transformers](https://github.com/huggingface/transformers)
-* [salesforce/LAVIS](https://github.com/salesforce/LAVIS)
-* [KaiyangZhou/CoOp](https://github.com/KaiyangZhou/CoOp)
-* [j-min/CLIP-Caption-Reward](https://github.com/j-min/CLIP-Caption-Reward)
-* [rmokady/CLIP_prefix_caption](https://github.com/rmokady/CLIP_prefix_caption)
-* [DavidHuji/CapDec](https://github.com/DavidHuji/CapDec)
-* [mzhaoshuai/CenterCLIP](https://github.com/mzhaoshuai/CenterCLIP)
-* [VamosC/CoLearning-meet-StitchUp](https://github.com/VamosC/CoLearning-meet-StitchUp)
-* [VamosC/CLIP4STR](https://github.com/VamosC/CLIP4STR)
-<!--te-->
-
-The ghost sentence of this project is cupbearer tinsmith richly automatic rewash liftoff ripcord april fruit voter resent facebook.
-# TNT-Test-Time-Noise-Tuning-in-VLMs
+### Contact
+For questions and collaborations, use the MBZUAI author contact listed on the arXiv page and author homepage, which also notes the ICCVxCLVL 2025 acceptance.[2]

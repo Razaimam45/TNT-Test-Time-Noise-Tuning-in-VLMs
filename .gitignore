@@ -1,0 +1,33 @@
+__pycache__/
+.vscode/*
+*.pth.tar
+*.pth
+# *.png
+# *.jpg
+*.pdf 
+# *.txt
+*.out
+
+*.py[cod]
+*$py.class
+*.egg-info
+.pytest_cache
+.ipynb_checkpoints
+*/*.pth
+*.ipynb
+thumbs.db
+.DS_Store
+.idea
+*.log
+
+*.py linguist-language=Python
+*.js linguist-language=JavaScript
+*.html linguist-language=HTML
+*.css linguist-language=CSS
+
+/home/raza.imam/Documents/RLCF/RLCF/data
+/home/raza.imam/Documents/RLCF/RLCF/exp_01
+/home/raza.imam/Documents/RLCF/RLCF/pretrained
+/home/raza.imam/Documents/RLCF/RLCF/results
+/home/raza.imam/Documents/RLCF/RLCF/zero
+/home/raza.imam/Documents/RLCF/RLCF/CLIP-KD
